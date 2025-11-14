@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- 适配刘海屏/全面屏安全区域 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>温馨提示弹窗·冬日限定</title>
+<style>
+/* 弹窗样式（三重防出界） */
+.popup {
+  position: absolute;
+  width: 60vw; /* 大幅缩窄宽度，预留充足安全空间 */
+  max-width: 220px; /* 最大宽度再减20px */
+  height: 16vw; /* 增加高度，避免文字挤压导致宽度异常 */
+  max-height: 65px;
+  padding: 2vw 3vw; /* 左右内边距加大，文字居中更稳 */
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "微软雅黑", sans-serif;
+  font-size: 3vw; /* 进一步缩小字体 */
+  max-font-size: 14px;
+  z-index: 9999;
+  transition: opacity 0.3s, left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), top 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+  word-break: keep-all; /* 禁止换行 */
+  white-space: nowrap; /* 强制单行显示 */
+  overflow: hidden; /* 隐藏溢出文字（极端情况） */
+  text-overflow: ellipsis; /* 溢出文字用省略号 */
+  /* CSS强制限制右侧：最大左偏移 = 屏幕宽度 - 弹窗宽度 - 20px */
+  max-left: calc(100vw - 60vw - 20px);
+  /* 适配刘海屏安全区域 */
+  padding-right: calc(3vw + env(safe-area-inset-right));
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  background: #f9f9fc;
+  transition: background 1.5s ease;
+  /* 避免body有默认内边距 */
+  padding-right: env(safe-area-inset-right);
+}
+
+/* 雪花与爱心flake样式 */
+.snowflake {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 100;
+  animation: fall linear infinite;
+}
+
+.heart-flake {
+  position: absolute;
+  background: #ffccd5;
+  transform: rotate(45deg);
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 100;
+  animation: fall linear infinite;
+}
+.heart-flake::before, .heart-flake::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  border-radius: 50%;
+}
+.heart-flake::before { top: -50%; left: 0; }
+.heart-flake::after { top: 0; left: -50%; }
+
+@keyframes fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+/* 结尾动画相关样式 */
+#heartCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  opacity: 1;
+  transition: opacity 1.5s ease;
+}
+
+.bg-pink-heart {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.8;
+  animation: float linear infinite;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.6; }
+  25% { transform: translate(20px, -30px) rotate(5deg); opacity: 0.8; }
+  50% { transform: translate(0, -50px) rotate(0deg); opacity: 1; }
+  75% { transform: translate(-20px, -30px) rotate(-5deg); opacity: 0.8; }
+  100% { transform: translate(0, 0) rotate(0deg); opacity: 0.6; }
+}
+
+/* 小屏手机专项适配（<375px） */
+@media (max-width: 375px) {
+  .popup {
+    width: 55vw;
+    font-size: 2.8vw;
+    max-left: calc(100vw - 55vw - 25px); /* 预留25px安全边距 */
+  }
+}
+</style>
+</head>
+<body>
+<!-- 粒子爱心Canvas（结尾动画） -->
+<canvas id="heartCanvas"></canvas>
+
+<script>
+// 弹窗逻辑（终极防出界计算）
+const tips = [
+  '多远都要在一起😊', '好喜欢小汤圆', '永远在一起',
+  '我想你了🌹', '这周见面好期待', '王小墉爱蒲小花 ❤️',
+  '多喝水哦～', '保持微笑呀', '每天超气满满😉',
+  '保持好心情', '好好爱自己🌈', '一起加油',
+  '不开心一起哭', '开心一起笑😎', '天冷多穿衣服🥰',
+  '老婆大人万岁~❤️','老婆大人最好了','小弟膜拜你','今年一起跨年👏','小汤圆和小蛋糕🥰','每天开心86400秒','异地恋拿下😌','180公里挡不住❤️','老婆大人亲亲😘','少熬夜','注意身体呀🥺','你是上天的礼物'
+];
+
+const bgColors = [
+  'lightgreen', 'lightblue', 'lightpink', 'lavender',
+  'plum', 'coral', 'lightyellow', 'bisque',
+  'aquamarine', 'mistyrose', 'honeydew', 'lavenderblush', 'oldlace'
+];
+
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
+// 小屏手机再减弹窗数量，避免拥挤
+const total = screenWidth < 375 ? 80 : screenWidth < 768 ? 90 : 300;
+const interval = 120; // 延长弹窗生成间隔，减少同时渲染压力
+
+const popups = [];
+
+// 终极修复：用getBoundingClientRect获取精准尺寸，双重校验
+function createPopup() {
+  const popup = document.createElement('div');
+  popup.className = 'popup';
+  
+  // 先添加到文档，获取渲染后精准尺寸（包含所有样式影响）
+  document.body.appendChild(popup);
+  const rect = popup.getBoundingClientRect();
+  const popupWidth = rect.width;
+  const popupHeight = rect.height;
+  
+  // 计算最大左偏移：屏幕宽度 - 弹窗宽度 - 25px（超大安全边距）
+  const maxLeft = screenWidth - popupWidth - 25;
+  // 计算最大上偏移：屏幕高度 - 弹窗高度 - 20px
+  const maxTop = screenHeight - popupHeight - 20;
+  
+  // 随机位置：严格限制在 15~maxLeft、15~maxTop 之间
+  const randomLeft = Math.floor(Math.random() * (maxLeft - 15 + 1)) + 15;
+  const randomTop = Math.floor(Math.random() * (maxTop - 15 + 1)) + 15;
+  
+  // 最终校验：用Math.min强制锁定最大左偏移
+  const finalLeft = Math.min(randomLeft, maxLeft);
+  const finalTop = Math.min(randomTop, maxTop);
+  
+  popup.style.left = `${finalLeft}px`;
+  popup.style.top = `${finalTop}px`;
+  
+  // 选择较短的文案，避免文字过长导致弹窗挤压
+  const shortTips = tips.filter(tip => tip.length <= 12);
+  popup.textContent = shortTips[Math.floor(Math.random() * shortTips.length)];
+  popup.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+  
+  popups.push(popup);
+}
+
+let count = 0;
+const timer = setInterval(() => {
+  if (count < total) {
+    createPopup();
+    count++;
+  } else {
+    clearInterval(timer);
+    setTimeout(gatherIntoHeart, 1000);
+  }
+}, interval);
+
+// 聚合阶段专项防出界
+function getHeartPosition(index, total) {
+  const centerX = screenWidth / 2 - 15; // 爱心中心左移15px，远离右侧
+  const centerY = screenHeight / 2;
+  const size = screenWidth < 375 ? 70 : screenWidth < 768 ? 80 : 200; // 大幅缩小手机端爱心范围
+  const angle = (index / total) * Math.PI * 2;
+  const x = 16 * Math.pow(Math.sin(angle), 3);
+  const y = 13 * Math.cos(angle) - 5 * Math.cos(2*angle) - 2 * Math.cos(3*angle) - Math.cos(4*angle);
+  return {
+    x: centerX + x * (size / 16),
+    y: centerY + y * (size / 16)
+  };
+}
+
+function gatherIntoHeart() {
+  popups.forEach((popup, index) => {
+    const { x, y } = getHeartPosition(index, popups.length);
+    const rect = popup.getBoundingClientRect();
+    const popupWidth = rect.width;
+    const popupHeight = rect.height;
+    
+    // 计算最终位置，右侧预留25px
+    let finalLeft = x - popupWidth / 2;
+    const finalTop = y - popupHeight / 2;
+    const maxLeft = screenWidth - popupWidth - 25;
+    const maxTop = screenHeight - popupHeight - 20;
+    
+    // 强制限制：左偏移不能超过maxLeft，且不能小于15px
+    finalLeft = Math.max(15, Math.min(finalLeft, maxLeft));
+    const finalTopFixed = Math.max(15, Math.min(finalTop, maxTop));
+    
+    popup.style.left = `${finalLeft}px`;
+    popup.style.top = `${finalTopFixed}px`;
+  });
+
+  setTimeout(() => {
+    popups.forEach(popup => {
+      popup.style.opacity = '0';
+      setTimeout(() => popup.remove(), 1000);
+    });
+    document.body.style.background = '#000';
+
+    createBgPinkHearts();
+
+    setTimeout(() => {
+      initParticleHeart();
+      document.getElementById('heartCanvas').style.opacity = '1';
+    }, 1000);
+  }, 2500);
+}
+
+// 关闭功能
+document.addEventListener('touchstart', () => {
+  popups.forEach(popup => popup.remove());
+  document.querySelectorAll('.bg-pink-heart').forEach(heart => heart.remove());
+  clearInterval(timer);
+  clearInterval(snowTimer);
+  if (animationId) cancelAnimationFrame(animationId);
+  const canvas = document.getElementById('heartCanvas');
+  if (canvas) canvas.remove();
+  alert('程序已退出');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    popups.forEach(popup => popup.remove());
+    document.querySelectorAll('.bg-pink-heart').forEach(heart => heart.remove());
+    clearInterval(timer);
+    clearInterval(snowTimer);
+    if (animationId) cancelAnimationFrame(animationId);
+    document.getElementById('heartCanvas').remove();
+    alert('程序已退出');
+  }
+});
+
+// 雪花逻辑（避免雪花出界）
+function createSnowflake() {
+  const isHeart = Math.random() < 0.3;
+  const flake = document.createElement('div');
+  const flakeSize = screenWidth < 768 ? Math.random() * 4 + 2 : Math.random() * 8 + 2;
+  
+  if (isHeart) {
+    flake.className = 'heart-flake';
+    flake.style.width = `${flakeSize}px`;
+    flake.style.height = `${flakeSize}px`;
+  } else {
+    flake.className = 'snowflake';
+    flake.style.width = `${flakeSize}px`;
+    flake.style.height = `${flakeSize}px`;
+  }
+  
+  // 雪花右侧不超出屏幕
+  flake.style.left = `${Math.random() * (screenWidth - flakeSize - 10)}px`;
+  const duration = screenWidth < 768 ? Math.random() * 15 + 10 : Math.random() * 10 + 5;
+  flake.style.animationDuration = `${duration}s`;
+  flake.style.animationDelay = `${Math.random() * 5}s`;
+  
+  document.body.appendChild(flake);
+  setTimeout(() => flake.remove(), 15000);
+}
+
+const snowTimer = setInterval(createSnowflake, 150);
+for (let i = 0; i < (screenWidth < 768 ? 8 : 20); i++) {
+  createSnowflake();
+}
+
+// 背景漂浮小爱心逻辑
+function createBgPinkHearts() {
+  const count = screenWidth < 768 ? 12 : 30;
+  for (let i = 0; i < count; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'bg-pink-heart';
+    const heartSize = screenWidth < 768 ? Math.random() * 6 + 3 : Math.random() * 15 + 5;
+    heart.innerHTML = `
+      <svg width="${heartSize}" height="${heartSize}" viewBox="0 0 24 24" fill="#ffccd5">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    `;
+    // 爱心右侧不超出屏幕
+    heart.style.left = `${Math.random() * (100 - (heartSize / screenWidth * 100) - 5)}vw`;
+    heart.style.top = `${Math.random() * (100 - (heartSize / screenHeight * 100) - 5)}vh`;
+    const duration = 15 + Math.random() * 20;
+    heart.style.animationDuration = `${duration}s`;
+    heart.style.animationDelay = `${Math.random() * 5}s`;
+    document.body.appendChild(heart);
+  }
+}
+
+// 粒子爱心核心逻辑
+let canvas, ctx;
+let particles = [];
+let heartTargetPoints = [];
+let animationId;
+let lastTime = 0;
+
+function generateHeartTargets() {
+  heartTargetPoints = [];
+  const centerX = screenWidth / 2 - 10; // 粒子爱心左移10px，远离右侧
+  const centerY = screenHeight / 2;
+  const size = screenWidth < 375 ? 60 : screenWidth < 768 ? 90 : 120;
+  
+  for (let i = 0; i < 120; i++) {
+    const t = (i / 120) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    heartTargetPoints.push({
+      x: centerX + x * (size / 16),
+      y: centerY + y * (size / 16)
+    });
+  }
+}
+
+class Particle {
+  constructor() {
+    this.x = screenWidth / 2 - 10;
+    this.y = screenHeight / 2;
+    this.size = screenWidth < 768 ? Math.random() * 2.5 + 1.5 : Math.random() * 3 + 2;
+    this.speed = screenWidth < 768 ? Math.random() * 1.2 + 1.2 : Math.random() * 1.5 + 1.5;
+    this.target = heartTargetPoints[Math.floor(Math.random() * heartTargetPoints.length)];
+    this.color = `hsl(190, 90%, ${65 + Math.random() * 15}%)`;
+    this.alpha = 0.9;
+  }
+
+  update() {
+    const dx = this.target.x - this.x;
+    const dy = this.target.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 1) {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function initParticleHeart() {
+  generateHeartTargets();
+  
+  canvas = document.getElementById('heartCanvas');
+  ctx = canvas.getContext('2d');
+  
+  function resize() {
+    canvas.width = screenWidth;
+    canvas.height = screenHeight;
+    generateHeartTargets();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  const particleCount = screenWidth < 375 ? 1500 : screenWidth < 768 ? 1800 : 3000;
+  particles = [];
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
+  
+  function animate(timestamp) {
+    const deltaTime = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    particles.forEach(particle => {
+      particle.update();
+      particle.draw();
+    });
+    
+    animationId = requestAnimationFrame(animate);
+  }
+  
+  requestAnimationFrame(animate);
+}
+</script>
+</body>
+</html>
