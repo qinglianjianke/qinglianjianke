@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>温馨提示弹窗·冬日限定</title>
+<style>
+/* 弹窗样式（保持已适配效果） */
+.popup {
+  position: absolute;
+  width: 75vw;
+  max-width: 250px;
+  height: 12vw;
+  max-height: 60px;
+  padding: 2vw;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "微软雅黑", sans-serif;
+  font-size: 3.5vw;
+  max-font-size: 16px;
+  z-index: 9999;
+  transition: opacity 0.3s, left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), top 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  background: #f9f9fc;
+  transition: background 1.5s ease;
+}
+
+/* 雪花与爱心flake样式 */
+.snowflake {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.8;
+  z-index: 100;
+  animation: fall linear infinite;
+}
+
+.heart-flake {
+  position: absolute;
+  background: #ffccd5;
+  transform: rotate(45deg);
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 100;
+  animation: fall linear infinite;
+}
+.heart-flake::before, .heart-flake::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  border-radius: 50%;
+}
+.heart-flake::before { top: -50%; left: 0; }
+.heart-flake::after { top: 0; left: -50%; }
+
+@keyframes fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+/* 结尾动画相关样式（提升粒子层级，确保可见） */
+#heartCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  opacity: 1; /* 直接显示，无需延迟 */
+  transition: opacity 1.5s ease;
+}
+
+.bg-pink-heart {
+  position: absolute;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.8;
+  animation: float linear infinite;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.6; }
+  25% { transform: translate(20px, -30px) rotate(5deg); opacity: 0.8; }
+  50% { transform: translate(0, -50px) rotate(0deg); opacity: 1; }
+  75% { transform: translate(-20px, -30px) rotate(-5deg); opacity: 0.8; }
+  100% { transform: translate(0, 0) rotate(0deg); opacity: 0.6; }
+}
+
+/* 手机端精细适配 */
+@media (max-width: 768px) {
+  .popup {
+    font-size: 3.2vw;
+    padding: 1.5vw;
+    width: 70vw;
+    height: 14vw;
+  }
+  
+  .bg-pink-heart {
+    width: 8vw;
+    height: 8vw;
+  }
+}
+</style>
+</head>
+<body>
+<!-- 粒子爱心Canvas（结尾动画） -->
+<canvas id="heartCanvas"></canvas>
+
+<script>
+// 弹窗逻辑（保持不变）
+const tips = [
+  '多远都要在一起😊', '好喜欢小汤圆', '永远在一起',
+  '我想你了🌹 🌹🌹', '这周见面好期待', '王小墉爱蒲小花 ❤️ ❤️ ❤️',
+  '多喝水哦～', '保持微笑呀', '每天都超气满满,记得吃水果🍋',
+  '保持好心情', '好好爱自己🌈', '一起加油',
+  '不开心一起哭', '开心一起笑😎', '天冷了多穿点衣服宝宝😏',
+  '老婆大人万岁~❤️','老婆大人最好了','小弟膜拜膜拜你','今年一起跨年👏','小汤圆和小蛋糕在一起🥰','每一天开心86400秒','小小异地恋拿下😌','180公里挡不住我们的爱🥺','老婆大人亲亲😘','少熬夜','注意身体哦宝宝🥺','你是上天给我的礼物'
+];
+
+const bgColors = [
+  'lightgreen', 'lightblue', 'lightpink', 'lavender',
+  'plum', 'coral', 'lightyellow', 'bisque',
+  'aquamarine', 'mistyrose', 'honeydew', 'lavenderblush', 'oldlace'
+];
+
+const screenWidth = window.innerWidth;
+const total = screenWidth < 768 ? 120 : 300;
+const interval = 100;
+
+const popups = [];
+
+function createPopup() {
+  const popup = document.createElement('div');
+  popup.className = 'popup';
+  
+  const popupWidth = screenWidth < 768 ? 70 : 75;
+  const popupHeight = screenWidth < 768 ? 14 : 12;
+  
+  const maxX = window.innerWidth - (popupWidth * screenWidth / 100) - 10;
+  const maxY = window.innerHeight - (popupHeight * screenWidth / 100) - 10;
+  
+  const randomX = Math.random() * maxX;
+  const randomY = Math.random() * maxY;
+  
+  popup.style.left = `${Math.max(5, randomX)}px`;
+  popup.style.top = `${Math.max(5, randomY)}px`;
+  
+  popup.textContent = tips[Math.floor(Math.random() * tips.length)];
+  popup.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+  document.body.appendChild(popup);
+  popups.push(popup);
+}
+
+let count = 0;
+const timer = setInterval(() => {
+  if (count < total) {
+    createPopup();
+    count++;
+  } else {
+    clearInterval(timer);
+    setTimeout(gatherIntoHeart, 1000);
+  }
+}, interval);
+
+function getHeartPosition(index, total) {
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  const size = screenWidth < 768 ? 100 : 200;
+  const angle = (index / total) * Math.PI * 2;
+  const x = 16 * Math.pow(Math.sin(angle), 3);
+  const y = 13 * Math.cos(angle) - 5 * Math.cos(2*angle) - 2 * Math.cos(3*angle) - Math.cos(4*angle);
+  return {
+    x: centerX + x * (size / 16),
+    y: centerY - y * (size / 16)
+  };
+}
+
+function gatherIntoHeart() {
+  popups.forEach((popup, index) => {
+    const { x, y } = getHeartPosition(index, popups.length);
+    const popupWidth = popup.offsetWidth;
+    const popupHeight = popup.offsetHeight;
+    
+    const finalX = x - popupWidth / 2;
+    const finalY = y - popupHeight / 2;
+    
+    popup.style.left = `${Math.max(5, Math.min(finalX, window.innerWidth - popupWidth - 5))}px`;
+    popup.style.top = `${Math.max(5, Math.min(finalY, window.innerHeight - popupHeight - 5))}px`;
+  });
+
+  setTimeout(() => {
+    popups.forEach(popup => {
+      popup.style.opacity = '0';
+      setTimeout(() => popup.remove(), 1000);
+    });
+    document.body.style.background = '#000'; // 黑色背景突出蓝色粒子
+
+    createBgPinkHearts();
+
+    setTimeout(() => {
+      initParticleHeart();
+      document.getElementById('heartCanvas').style.opacity = '1';
+    }, 1000);
+  }, 2500);
+}
+
+// 关闭功能（保持不变）
+document.addEventListener('touchstart', () => {
+  popups.forEach(popup => popup.remove());
+  document.querySelectorAll('.bg-pink-heart').forEach(heart => heart.remove());
+  clearInterval(timer);
+  clearInterval(snowTimer);
+  if (animationId) cancelAnimationFrame(animationId);
+  const canvas = document.getElementById('heartCanvas');
+  if (canvas) canvas.remove();
+  alert('程序已退出');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    popups.forEach(popup => popup.remove());
+    document.querySelectorAll('.bg-pink-heart').forEach(heart => heart.remove());
+    clearInterval(timer);
+    clearInterval(snowTimer);
+    if (animationId) cancelAnimationFrame(animationId);
+    document.getElementById('heartCanvas').remove();
+    alert('程序已退出');
+  }
+});
+
+// 雪花逻辑（保持不变）
+function createSnowflake() {
+  const isHeart = Math.random() < 0.3;
+  const flake = document.createElement('div');
+  const flakeSize = screenWidth < 768 ? Math.random() * 5 + 2 : Math.random() * 8 + 2;
+  
+  if (isHeart) {
+    flake.className = 'heart-flake';
+    flake.style.width = `${flakeSize}px`;
+    flake.style.height = `${flakeSize}px`;
+  } else {
+    flake.className = 'snowflake';
+    flake.style.width = `${flakeSize}px`;
+    flake.style.height = `${flakeSize}px`;
+  }
+  
+  flake.style.left = `${Math.random() * (window.innerWidth - flakeSize)}px`;
+  const duration = screenWidth < 768 ? Math.random() * 15 + 10 : Math.random() * 10 + 5;
+  flake.style.animationDuration = `${duration}s`;
+  flake.style.animationDelay = `${Math.random() * 5}s`;
+  
+  document.body.appendChild(flake);
+  setTimeout(() => flake.remove(), 15000);
+}
+
+const snowTimer = setInterval(createSnowflake, 150);
+for (let i = 0; i < (screenWidth < 768 ? 10 : 20); i++) {
+  createSnowflake();
+}
+
+// 背景漂浮小爱心逻辑（保持不变）
+function createBgPinkHearts() {
+  const count = screenWidth < 768 ? 15 : 30;
+  for (let i = 0; i < count; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'bg-pink-heart';
+    const heartSize = screenWidth < 768 ? Math.random() * 8 + 3 : Math.random() * 15 + 5;
+    heart.innerHTML = `
+      <svg width="${heartSize}" height="${heartSize}" viewBox="0 0 24 24" fill="#ffccd5">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    `;
+    heart.style.left = `${Math.random() * (100 - (heartSize / screenWidth * 100))}vw`;
+    heart.style.top = `${Math.random() * (100 - (heartSize / screenHeight * 100))}vh`;
+    const duration = 15 + Math.random() * 20;
+    heart.style.animationDuration = `${duration}s`;
+    heart.style.animationDelay = `${Math.random() * 5}s`;
+    document.body.appendChild(heart);
+  }
+}
+
+// 粒子爱心核心逻辑（重点优化蓝色爱心可见性）
+let canvas, ctx;
+let particles = [];
+let heartTargetPoints = [];
+let animationId;
+let lastTime = 0;
+
+function generateHeartTargets() {
+  heartTargetPoints = [];
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+  // 手机端增大爱心尺寸，让粒子聚合范围更明显
+  const size = screenWidth < 768 ? 110 : 120;
+  
+  for (let i = 0; i < 120; i++) { // 增加目标点数量，让爱心轮廓更清晰
+    const t = (i / 120) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+    heartTargetPoints.push({
+      x: centerX + x * (size / 16),
+      y: centerY + y * (size / 16)
+    });
+  }
+}
+
+class Particle {
+  constructor() {
+    this.x = window.innerWidth / 2;
+    this.y = window.innerHeight / 2;
+    // 增大手机端粒子尺寸，确保可见
+    this.size = screenWidth < 768 ? Math.random() * 2.5 + 1.5 : Math.random() * 3 + 2;
+    // 调整速度，让粒子聚合更整齐
+    this.speed = screenWidth < 768 ? Math.random() * 1.2 + 1.2 : Math.random() * 1.5 + 1.5;
+    this.target = heartTargetPoints[Math.floor(Math.random() * heartTargetPoints.length)];
+    // 调整蓝色色调，更鲜艳明显
+    this.color = `hsl(190, 90%, ${65 + Math.random() * 15}%)`;
+    this.alpha = 0.9; // 提高不透明度，增强视觉效果
+  }
+
+  update() {
+    const dx = this.target.x - this.x;
+    const dy = this.target.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 1) {
+      this.x += (dx / dist) * this.speed;
+      this.y += (dy / dist) * this.speed;
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10; // 增加阴影，让粒子更突出
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function initParticleHeart() {
+  generateHeartTargets();
+  
+  canvas = document.getElementById('heartCanvas');
+  ctx = canvas.getContext('2d');
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    generateHeartTargets();
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  // 增加手机端粒子数量，让爱心更饱满（从1200→1800，不影响性能）
+  const particleCount = screenWidth < 768 ? 1800 : 3000;
+  particles = [];
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
+  
+  function animate(timestamp) {
+    const deltaTime = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    particles.forEach(particle => {
+      particle.update();
+      particle.draw();
+    });
+    
+    animationId = requestAnimationFrame(animate);
+  }
+  
+  requestAnimationFrame(animate);
+}
+</script>
+</body>
+</html>
