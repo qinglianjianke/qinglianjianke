@@ -2,18 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<!-- 适配刘海屏/全面屏安全区域 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>来自王墉的礼物·冬日限定</title>
+<title>温馨提示弹窗·冬日限定</title>
 <style>
-/* 弹窗样式（三重防出界） */
+/* 弹窗样式（保持防出界配置） */
 .popup {
   position: absolute;
-  width: 60vw; /* 大幅缩窄宽度，预留充足安全空间 */
-  max-width: 220px; /* 最大宽度再减20px */
-  height: 16vw; /* 增加高度，避免文字挤压导致宽度异常 */
+  width: 60vw;
+  max-width: 220px;
+  height: 16vw;
   max-height: 65px;
-  padding: 2vw 3vw; /* 左右内边距加大，文字居中更稳 */
+  padding: 2vw 3vw;
   border: none;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -21,18 +20,16 @@
   align-items: center;
   justify-content: center;
   font-family: "微软雅黑", sans-serif;
-  font-size: 3vw; /* 进一步缩小字体 */
+  font-size: 3vw;
   max-font-size: 14px;
   z-index: 9999;
   transition: opacity 0.3s, left 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), top 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-sizing: border-box;
-  word-break: keep-all; /* 禁止换行 */
-  white-space: nowrap; /* 强制单行显示 */
-  overflow: hidden; /* 隐藏溢出文字（极端情况） */
-  text-overflow: ellipsis; /* 溢出文字用省略号 */
-  /* CSS强制限制右侧：最大左偏移 = 屏幕宽度 - 弹窗宽度 - 20px */
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   max-left: calc(100vw - 60vw - 20px);
-  /* 适配刘海屏安全区域 */
   padding-right: calc(3vw + env(safe-area-inset-right));
 }
 
@@ -43,7 +40,6 @@ body {
   height: 100vh;
   background: #f9f9fc;
   transition: background 1.5s ease;
-  /* 避免body有默认内边距 */
   padding-right: env(safe-area-inset-right);
 }
 
@@ -118,7 +114,7 @@ body {
   .popup {
     width: 55vw;
     font-size: 2.8vw;
-    max-left: calc(100vw - 55vw - 25px); /* 预留25px安全边距 */
+    max-left: calc(100vw - 55vw - 25px);
   }
 }
 </style>
@@ -128,7 +124,7 @@ body {
 <canvas id="heartCanvas"></canvas>
 
 <script>
-// 弹窗逻辑（终极防出界计算）
+// 弹窗逻辑（保持防出界，调整弹窗数量适配爱心形状）
 const tips = [
   '多远都要在一起😊', '好喜欢小汤圆', '永远在一起',
   '我想你了🌹', '这周见面好期待', '王小墉爱蒲小花 ❤️',
@@ -146,40 +142,34 @@ const bgColors = [
 
 const screenWidth = window.innerWidth;
 const screenHeight = window.innerHeight;
-// 小屏手机再减弹窗数量，避免拥挤
-const total = screenWidth < 375 ? 80 : screenWidth < 768 ? 90 : 300;
-const interval = 120; // 延长弹窗生成间隔，减少同时渲染压力
+// 调整弹窗数量：保证爱心轮廓饱满，同时不拥挤
+const total = screenWidth < 375 ? 110 : screenWidth < 768 ? 140 : 300;
+const interval = 120;
 
 const popups = [];
 
-// 终极修复：用getBoundingClientRect获取精准尺寸，双重校验
+// 保持防出界逻辑不变
 function createPopup() {
   const popup = document.createElement('div');
   popup.className = 'popup';
   
-  // 先添加到文档，获取渲染后精准尺寸（包含所有样式影响）
   document.body.appendChild(popup);
   const rect = popup.getBoundingClientRect();
   const popupWidth = rect.width;
   const popupHeight = rect.height;
   
-  // 计算最大左偏移：屏幕宽度 - 弹窗宽度 - 25px（超大安全边距）
   const maxLeft = screenWidth - popupWidth - 25;
-  // 计算最大上偏移：屏幕高度 - 弹窗高度 - 20px
   const maxTop = screenHeight - popupHeight - 20;
   
-  // 随机位置：严格限制在 15~maxLeft、15~maxTop 之间
   const randomLeft = Math.floor(Math.random() * (maxLeft - 15 + 1)) + 15;
   const randomTop = Math.floor(Math.random() * (maxTop - 15 + 1)) + 15;
   
-  // 最终校验：用Math.min强制锁定最大左偏移
   const finalLeft = Math.min(randomLeft, maxLeft);
   const finalTop = Math.min(randomTop, maxTop);
   
   popup.style.left = `${finalLeft}px`;
   popup.style.top = `${finalTop}px`;
   
-  // 选择较短的文案，避免文字过长导致弹窗挤压
   const shortTips = tips.filter(tip => tip.length <= 12);
   popup.textContent = shortTips[Math.floor(Math.random() * shortTips.length)];
   popup.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
@@ -198,17 +188,25 @@ const timer = setInterval(() => {
   }
 }, interval);
 
-// 聚合阶段专项防出界
+// 核心修复：优化爱心生成逻辑，保持规整形状
 function getHeartPosition(index, total) {
-  const centerX = screenWidth / 2 - 15; // 爱心中心左移15px，远离右侧
-  const centerY = screenHeight / 2;
-  const size = screenWidth < 375 ? 70 : screenWidth < 768 ? 80 : 200; // 大幅缩小手机端爱心范围
+  const centerX = screenWidth / 2 - 8; // 轻微左移，兼顾防出界和对称
+  const centerY = screenHeight / 2 + 10; // 向下微调，让爱心更协调
+  // 调整爱心尺寸：保证形状饱满，同时不超出右侧
+  const size = screenWidth < 375 ? 95 : screenWidth < 768 ? 110 : 200;
+  // 优化角度计算，让弹窗均匀分布在爱心轮廓上
   const angle = (index / total) * Math.PI * 2;
+  // 标准爱心公式优化，增强对称性
   const x = 16 * Math.pow(Math.sin(angle), 3);
-  const y = 13 * Math.cos(angle) - 5 * Math.cos(2*angle) - 2 * Math.cos(3*angle) - Math.cos(4*angle);
+  const y = -(13 * Math.cos(angle) - 5 * Math.cos(2*angle) - 2 * Math.cos(3*angle) - Math.cos(4*angle));
+  
+  // 微调X轴比例，避免爱心左右变形
+  const adjustedX = x * (size / 16) * 0.95;
+  const adjustedY = y * (size / 16);
+  
   return {
-    x: centerX + x * (size / 16),
-    y: centerY + y * (size / 16)
+    x: centerX + adjustedX,
+    y: centerY + adjustedY
   };
 }
 
@@ -219,15 +217,14 @@ function gatherIntoHeart() {
     const popupWidth = rect.width;
     const popupHeight = rect.height;
     
-    // 计算最终位置，右侧预留25px
     let finalLeft = x - popupWidth / 2;
     const finalTop = y - popupHeight / 2;
     const maxLeft = screenWidth - popupWidth - 25;
     const maxTop = screenHeight - popupHeight - 20;
     
-    // 强制限制：左偏移不能超过maxLeft，且不能小于15px
-    finalLeft = Math.max(15, Math.min(finalLeft, maxLeft));
-    const finalTopFixed = Math.max(15, Math.min(finalTop, maxTop));
+    // 仅在超出边界时才调整，不破坏爱心形状
+    finalLeft = finalLeft < 15 ? 15 : finalLeft > maxLeft ? maxLeft : finalLeft;
+    const finalTopFixed = finalTop < 15 ? 15 : finalTop > maxTop ? maxTop : finalTop;
     
     popup.style.left = `${finalLeft}px`;
     popup.style.top = `${finalTopFixed}px`;
@@ -273,7 +270,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// 雪花逻辑（避免雪花出界）
+// 雪花逻辑
 function createSnowflake() {
   const isHeart = Math.random() < 0.3;
   const flake = document.createElement('div');
@@ -289,7 +286,6 @@ function createSnowflake() {
     flake.style.height = `${flakeSize}px`;
   }
   
-  // 雪花右侧不超出屏幕
   flake.style.left = `${Math.random() * (screenWidth - flakeSize - 10)}px`;
   const duration = screenWidth < 768 ? Math.random() * 15 + 10 : Math.random() * 10 + 5;
   flake.style.animationDuration = `${duration}s`;
@@ -316,7 +312,6 @@ function createBgPinkHearts() {
         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
       </svg>
     `;
-    // 爱心右侧不超出屏幕
     heart.style.left = `${Math.random() * (100 - (heartSize / screenWidth * 100) - 5)}vw`;
     heart.style.top = `${Math.random() * (100 - (heartSize / screenHeight * 100) - 5)}vh`;
     const duration = 15 + Math.random() * 20;
@@ -335,16 +330,16 @@ let lastTime = 0;
 
 function generateHeartTargets() {
   heartTargetPoints = [];
-  const centerX = screenWidth / 2 - 10; // 粒子爱心左移10px，远离右侧
-  const centerY = screenHeight / 2;
-  const size = screenWidth < 375 ? 60 : screenWidth < 768 ? 90 : 120;
+  const centerX = screenWidth / 2 - 8;
+  const centerY = screenHeight / 2 + 10;
+  const size = screenWidth < 375 ? 95 : screenWidth < 768 ? 110 : 120;
   
   for (let i = 0; i < 120; i++) {
     const t = (i / 120) * Math.PI * 2;
     const x = 16 * Math.pow(Math.sin(t), 3);
     const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
     heartTargetPoints.push({
-      x: centerX + x * (size / 16),
+      x: centerX + x * (size / 16) * 0.95,
       y: centerY + y * (size / 16)
     });
   }
@@ -352,8 +347,8 @@ function generateHeartTargets() {
 
 class Particle {
   constructor() {
-    this.x = screenWidth / 2 - 10;
-    this.y = screenHeight / 2;
+    this.x = screenWidth / 2 - 8;
+    this.y = screenHeight / 2 + 10;
     this.size = screenWidth < 768 ? Math.random() * 2.5 + 1.5 : Math.random() * 3 + 2;
     this.speed = screenWidth < 768 ? Math.random() * 1.2 + 1.2 : Math.random() * 1.5 + 1.5;
     this.target = heartTargetPoints[Math.floor(Math.random() * heartTargetPoints.length)];
@@ -422,5 +417,4 @@ function initParticleHeart() {
 }
 </script>
 </body>
-
 </html>
